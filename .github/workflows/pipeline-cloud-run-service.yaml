@@ -1,0 +1,38 @@
+name: Deploy Cloud Run service
+
+on:
+  workflow_call:
+    inputs:
+      build_image:
+        required: true
+        type: string
+      service_name:
+        required: true
+        type: string
+      registry_hostname:
+        required: false
+        type: string
+        default: europe-west3-docker.pkg.dev
+      pom_folder:
+        required: false
+        type: string
+        default: .
+
+jobs:
+  build:
+    name: Building the Cloud Run Container
+    uses: Matil86/pnp-service/.github/workflows/build-cloud-run.yaml@live
+    with:
+      build_image: ${{ inputs.build_image }}
+      pom_folder: ${{ inputs.pom_folder }}
+    secrets: inherit
+
+  deploy:
+    name: Deploying the Cloud Run Container
+    needs: build
+    uses: Matil86/pnp-service/.github/workflows/deploy-cloud-run.yaml@live
+    with:
+      build_image: ${{ inputs.build_image }}
+      service_name: ${{ inputs.service_name }}
+      registry_hostname: ${{ inputs.registry_hostname }}
+    secrets: inherit

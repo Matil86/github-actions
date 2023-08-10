@@ -1,0 +1,70 @@
+name: Build Cloud Run container
+
+on:
+  workflow_call:
+    inputs:
+      build_image:
+        required: true
+        type: string
+      pom_folder:
+        required: false
+        type: string
+        default: .
+
+env:
+  IMAGE: ${{ inputs.build_image }}
+  REGISTRY_HOSTNAME: europe-west3-docker.pkg.dev
+  POM_FOLDER: ${{ inputs.pom_folder }}
+
+jobs:
+  build:
+    name: Building the Cloud Run Container
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up GraalVM 22.3.2
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '17.0.7'
+          distribution: 'graalvm'
+          cache: maven
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+          access_token_lifetime: 3600s
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Build all Packages
+        run: mvn install
+
+      - name: Build with Spring Boot Native
+        id: maven_native_build
+        run: mvn spring-boot:build-image --file ./${{env.POM_FOLDER}}/pom.xml -Pnative -U
+
+      - name: Configure Docker via gcloud
+        run: |
+          gcloud auth configure-docker $REGISTRY_HOSTNAME
+
+      - name: getVersion
+        id: getVersion
+        run: |
+          echo "version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_OUTPUT
+
+      - name: Tag Latest
+        working-directory: ./${{env.POM_FOLDER}}/target
+        run: |
+          docker tag ${{env.POM_FOLDER}}:${{steps.getVersion.outputs.version}} ${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/spring-boot-native-repository/${{env.IMAGE}}:latest
+
+      - name: Upload artifact
+        run: |
+          docker push ${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/spring-boot-native-repository/${{env.IMAGE}}
