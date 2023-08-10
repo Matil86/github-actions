@@ -21,7 +21,7 @@ on:
 jobs:
   build:
     name: Building the Cloud Run Container
-    uses: Matil86/github-actions/.github/workflows/build-cloud-run.yaml@live
+    uses: Matil86/github-actions/.github/workflows/build-cloud-run.yaml@main
     with:
       build_image: ${{ inputs.build_image }}
       pom_folder: ${{ inputs.pom_folder }}
@@ -30,7 +30,7 @@ jobs:
   deploy:
     name: Deploying the Cloud Run Container
     needs: build
-    uses: Matil86/github-actions/.github/workflows/deploy-cloud-run.yaml@live
+    uses: Matil86/github-actions/.github/workflows/deploy-cloud-run.yaml@main
     with:
       build_image: ${{ inputs.build_image }}
       service_name: ${{ inputs.service_name }}
