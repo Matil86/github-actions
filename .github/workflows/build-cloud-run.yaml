@@ -56,10 +56,9 @@ jobs:
         run: |
           echo "version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_OUTPUT
 
-      - name: Tag Latest
-        working-directory: ./${{env.POM_FOLDER}}
+      - name: Build Latest
         run: |
-          docker build . -t ${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest
+          docker build ./${{env.POM_FOLDER}} -t ${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest
 
       - name: Upload artifact
         run: |
