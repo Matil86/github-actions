@@ -61,10 +61,10 @@ jobs:
           echo "version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_OUTPUT
 
       - name: Tag Latest
-        working-directory: ./${{env.POM_FOLDER}}/target
+        working-directory: ./${{env.POM_FOLDER}}
         run: |
-          docker tag ${{env.POM_FOLDER}}:${{steps.getVersion.outputs.version}} ${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/spring-boot-native-repository/${{env.IMAGE}}:latest
+          docker tag ${{env.POM_FOLDER}}:${{steps.getVersion.outputs.version}} ${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest
 
       - name: Upload artifact
         run: |
-          docker push ${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/spring-boot-native-repository/${{env.IMAGE}}
+          docker push ${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}
