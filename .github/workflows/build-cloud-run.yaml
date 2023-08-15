@@ -47,10 +47,6 @@ jobs:
       - name: Build all Packages
         run: mvn install
 
-      - name: Build with Spring Boot Native
-        id: maven_native_build
-        run: mvn spring-boot:build-image --file ./${{env.POM_FOLDER}}/pom.xml -Pnative -U
-
       - name: Configure Docker via gcloud
         run: |
           gcloud auth configure-docker $REGISTRY_HOSTNAME
@@ -63,7 +59,7 @@ jobs:
       - name: Tag Latest
         working-directory: ./${{env.POM_FOLDER}}
         run: |
-          docker tag ${{env.POM_FOLDER}}:${{steps.getVersion.outputs.version}} ${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest
+          docker build ${{env.POM_FOLDER}}:${{steps.getVersion.outputs.version}} -t ${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest
 
       - name: Upload artifact
         run: |
