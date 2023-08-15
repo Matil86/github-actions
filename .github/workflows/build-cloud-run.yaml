@@ -59,7 +59,7 @@ jobs:
       - name: Tag Latest
         working-directory: ./${{env.POM_FOLDER}}
         run: |
-          docker build ${{env.POM_FOLDER}}:${{steps.getVersion.outputs.version}} -t ${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest
+          docker build . -t ${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest
 
       - name: Upload artifact
         run: |
