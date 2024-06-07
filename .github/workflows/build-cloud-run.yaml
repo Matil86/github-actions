@@ -30,7 +30,7 @@ jobs:
       - name: Set up GraalVM 22.3.2
         uses: graalvm/setup-graalvm@v1
         with:
-          java-version: '17.0.7'
+          java-version: '22.3.2'
           distribution: 'graalvm'
           cache: maven
 
