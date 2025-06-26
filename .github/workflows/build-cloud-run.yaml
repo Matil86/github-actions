@@ -15,7 +15,6 @@ env:
   IMAGE: ${{ inputs.build_image }}
   REGISTRY_HOSTNAME: europe-west3-docker.pkg.dev
   POM_FOLDER: ${{ inputs.pom_folder }}
-  DOCKER_BUILDKIT: 1
 
 jobs:
   build:
@@ -27,18 +26,7 @@ jobs:
     environment: live
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Cache Docker layers
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
+        uses: actions/checkout@v3
 
       - name: Set up GraalVM
         uses: graalvm/setup-graalvm@v1
@@ -58,12 +46,12 @@ jobs:
         uses: google-github-actions/setup-gcloud@v1
 
       - name: Build all Packages
-        run: mvn -B install -DskipTests -T 2C
+        run: mvn install -DskipTests
 
       - name: Build native image
         run: |
           cd ${{ env.POM_FOLDER }}
-          mvn -B spring-boot:build-image -DskipTests -Pnative -T 2C \
+          mvn spring-boot:build-image -DskipTests -Pnative \
             -Dspring-boot.build-image.imageName=${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest
 
       - name: Configure Docker via gcloud
