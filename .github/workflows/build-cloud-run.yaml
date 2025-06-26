@@ -46,6 +46,9 @@ jobs:
         uses: google-github-actions/setup-gcloud@v1
 
       - name: Build all Packages
+        run: mvn install -DskipTests
+
+      - name: Build native image
         run: |
           cd ${{ env.POM_FOLDER }}
           mvn spring-boot:build-image -DskipTests -Pnative \
