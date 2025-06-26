@@ -37,7 +37,7 @@ jobs:
         id: deploy
         with:
           service: ${{inputs.service_name}}
-          image: ${{inputs.registry_hostname}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{inputs.build_image}}:latest
+          image: ${{inputs.registry_hostname}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{inputs.build_image}}
           region: ${{vars.REGION}}
           flags: '--service-account=${{ secrets.WIF_SERVICE_ACCOUNT }}'
 
