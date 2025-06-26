@@ -46,7 +46,7 @@ jobs:
         uses: google-github-actions/setup-gcloud@v1
 
       - name: Build all Packages
-        run: mvn install -DskipTests
+        run: mvn install -DskipTests -U
 
       - name: Build native image
         run: |
