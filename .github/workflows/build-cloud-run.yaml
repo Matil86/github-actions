@@ -63,6 +63,7 @@ jobs:
         if: ${{ inputs.build_native == false }}
         run: |
           cd ${{ env.POM_FOLDER }}
+          mvn package -DskipTests
           docker build . -t ${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest
 
       - name: Configure Docker via gcloud
