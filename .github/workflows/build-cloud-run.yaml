@@ -62,7 +62,8 @@ jobs:
       - name: Build Docker image
         if: ${{ inputs.build_native == false }}
         run: |
-          docker build ./${{env.POM_FOLDER}} -t ${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest
+          cd ${{ env.POM_FOLDER }}
+          docker build . -t ${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest
 
       - name: Configure Docker via gcloud
         run: |
