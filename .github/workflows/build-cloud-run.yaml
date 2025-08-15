@@ -10,6 +10,10 @@ on:
         required: false
         type: string
         default: .
+      build_native:
+        required: false
+        type: boolean
+        default: true
 
 env:
   IMAGE: ${{ inputs.build_image }}
@@ -49,10 +53,16 @@ jobs:
         run: mvn install -DskipTests -U
 
       - name: Build native image
+        if: ${{ inputs.build_native == 'true' }}
         run: |
           cd ${{ env.POM_FOLDER }}
           mvn spring-boot:build-image -DskipTests -Pnative \
             -Dspring-boot.build-image.imageName=${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest
+
+      - name: Build Docker image
+        if: ${{ inputs.build_native == 'false' }}
+        run: |
+          docker build ./${{env.POM_FOLDER}} -t ${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest
 
       - name: Configure Docker via gcloud
         run: |
