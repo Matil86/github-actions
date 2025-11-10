@@ -10,15 +10,27 @@ on:
         required: false
         type: string
         default: .
+        description: "For Maven projects: folder containing pom.xml"
+      build_folder:
+        required: false
+        type: string
+        default: .
+        description: "For Gradle projects: folder containing build.gradle.kts"
       build_native:
         required: false
         type: boolean
         default: true
+      build_tool:
+        required: false
+        type: string
+        default: auto
+        description: "Build tool to use: 'maven', 'gradle', or 'auto' to detect automatically"
 
 env:
   IMAGE: ${{ inputs.build_image }}
   REGISTRY_HOSTNAME: europe-west3-docker.pkg.dev
   POM_FOLDER: ${{ inputs.pom_folder }}
+  BUILD_FOLDER: ${{ inputs.build_folder }}
 
 jobs:
   build:
@@ -32,12 +44,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Detect build tool
+        id: detect
+        run: |
+          BUILD_TOOL="${{ inputs.build_tool }}"
+
+          if [ "$BUILD_TOOL" = "auto" ]; then
+            if [ -f "build.gradle.kts" ] || [ -f "build.gradle" ]; then
+              BUILD_TOOL="gradle"
+              echo "Detected Gradle project"
+            elif [ -f "pom.xml" ]; then
+              BUILD_TOOL="maven"
+              echo "Detected Maven project"
+            else
+              echo "ERROR: Could not detect build tool. Please specify build_tool input."
+              exit 1
+            fi
+          fi
+
+          echo "build_tool=$BUILD_TOOL" >> $GITHUB_OUTPUT
+          echo "Using build tool: $BUILD_TOOL"
+
       - name: Set up GraalVM
         uses: graalvm/setup-graalvm@v1
         with:
           java-version: '24'
           distribution: 'graalvm'
-          cache: maven
+          cache: ${{ steps.detect.outputs.build_tool }}
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v1
@@ -49,31 +82,61 @@ jobs:
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
 
-      - name: Build all Packages
+      - name: Make gradlew executable (Gradle only)
+        if: steps.detect.outputs.build_tool == 'gradle'
+        run: chmod +x gradlew
+
+      - name: Build all packages (Maven)
+        if: steps.detect.outputs.build_tool == 'maven'
         run: mvn install -DskipTests -U
 
-      - name: Build native image
-        if: ${{ inputs.build_native == true }}
+      - name: Build all packages (Gradle)
+        if: steps.detect.outputs.build_tool == 'gradle'
+        run: ./gradlew build -x test
+
+      - name: Build native image (Maven)
+        if: ${{ inputs.build_native == true && steps.detect.outputs.build_tool == 'maven' }}
         run: |
           cd ${{ env.POM_FOLDER }}
           mvn spring-boot:build-image -DskipTests -Pnative \
             -Dspring-boot.build-image.imageName=${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest
 
-      - name: Build Docker image
-        if: ${{ inputs.build_native == false }}
+      - name: Build native image (Gradle)
+        if: ${{ inputs.build_native == true && steps.detect.outputs.build_tool == 'gradle' }}
+        run: |
+          cd ${{ env.BUILD_FOLDER }}
+          ./gradlew bootBuildImage --imageName=${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest -x test
+
+      - name: Build Docker image (Maven)
+        if: ${{ inputs.build_native == false && steps.detect.outputs.build_tool == 'maven' }}
         run: |
           cd ${{ env.POM_FOLDER }}
           mvn package -DskipTests
+          docker build . -t ${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest
+
+      - name: Build Docker image (Gradle)
+        if: ${{ inputs.build_native == false && steps.detect.outputs.build_tool == 'gradle' }}
+        run: |
+          cd ${{ env.BUILD_FOLDER }}
+          ./gradlew bootJar -x test
           docker build . -t ${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest
 
       - name: Configure Docker via gcloud
         run: |
           gcloud auth configure-docker $REGISTRY_HOSTNAME
 
-      - name: getVersion
-        id: getVersion
+      - name: Get version (Maven)
+        if: steps.detect.outputs.build_tool == 'maven'
+        id: getVersionMaven
         run: |
           echo "version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_OUTPUT
+
+      - name: Get version (Gradle)
+        if: steps.detect.outputs.build_tool == 'gradle'
+        id: getVersionGradle
+        run: |
+          VERSION=$(./gradlew properties -q | grep "^version:" | awk '{print $2}')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Upload artifact
         run: |

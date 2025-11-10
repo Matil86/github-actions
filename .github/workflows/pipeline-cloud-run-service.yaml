@@ -17,10 +17,21 @@ on:
         required: false
         type: string
         default: .
+        description: "For Maven projects: folder containing pom.xml"
+      build_folder:
+        required: false
+        type: string
+        default: .
+        description: "For Gradle projects: folder containing build.gradle.kts"
       build_native:
         required: false
         type: boolean
         default: true
+      build_tool:
+        required: false
+        type: string
+        default: auto
+        description: "Build tool to use: 'maven', 'gradle', or 'auto' to detect automatically"
 
 jobs:
   build:
@@ -29,7 +40,9 @@ jobs:
     with:
       build_image: ${{ inputs.build_image }}
       pom_folder: ${{ inputs.pom_folder }}
+      build_folder: ${{ inputs.build_folder }}
       build_native: ${{ inputs.build_native }}
+      build_tool: ${{ inputs.build_tool }}
     secrets: inherit
 
   deploy:
