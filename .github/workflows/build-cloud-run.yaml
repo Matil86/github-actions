@@ -104,8 +104,15 @@ jobs:
       - name: Build native image (Gradle)
         if: ${{ inputs.build_native == true && steps.detect.outputs.build_tool == 'gradle' }}
         run: |
-          cd ${{ env.BUILD_FOLDER }}
-          ./gradlew bootBuildImage --imageName=${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest -x test
+          # Determine the module name from BUILD_FOLDER for multi-module projects
+          MODULE_NAME=$(basename ${{ env.BUILD_FOLDER }})
+          if [ "${{ env.BUILD_FOLDER }}" = "." ]; then
+            # Single-module project at root
+            ./gradlew bootBuildImage --imageName=${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest -x test
+          else
+            # Multi-module project - use module-specific task
+            ./gradlew :${MODULE_NAME}:bootBuildImage --imageName=${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest -x test
+          fi
 
       - name: Build Docker image (Maven)
         if: ${{ inputs.build_native == false && steps.detect.outputs.build_tool == 'maven' }}
@@ -117,9 +124,10 @@ jobs:
       - name: Build Docker image (Gradle)
         if: ${{ inputs.build_native == false && steps.detect.outputs.build_tool == 'gradle' }}
         run: |
+          # JAR is already built by './gradlew build' step above
+          # Just build the Docker image with the pre-built JAR
           cd ${{ env.BUILD_FOLDER }}
-          ./gradlew bootJar -x test
-          docker build . -t ${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest
+          docker build -f Dockerfile -t ${{env.REGISTRY_HOSTNAME}}/${{vars.PROJECT_ID}}/${{vars.REPOSITORY_NAME}}/${{env.IMAGE}}:latest .
 
       - name: Configure Docker via gcloud
         run: |
